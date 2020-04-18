@@ -104,7 +104,7 @@ def system_initialize(ham_int, reader_int):
     initialize(ham_int)
     hepa_on(ham_int, 30, simulate=int(simulation_on))
 
-def prepare_plaque_assays(phage_dilutions, plate_wells, culture_wells): # deal with up to 8 at the same time
+def prepare_assays(phage_dilutions, culture_wells, plate_wells): # deal with up to 8 at the same time
     ham_int, *_ = sys_state.instruments
     num_phage_dilutions = len(phage_dilutions)
     agar_positions = all_agar_positions[:num_phage_dilutions]
@@ -147,7 +147,7 @@ def new_tips(num=num_phage_dilutions, ttype='agar'):
             continue
     return tip_batch
 
-def get_up_to_2_plates():
+def get_2_plates():
     todo_plates = plates[:]
     while todo_plates:
         this_round_plates = []
@@ -158,7 +158,7 @@ def get_up_to_2_plates():
                 break
         yield this_round_plates
 
-def up_to_8_assays_across(this_round_plates):
+def get_8_wells(this_round_plates):
     this_round_batches = []
     for pos_batch in pos_batches:
         _, ((extract_plate, _), *_), _ = pos_batch
@@ -172,15 +172,15 @@ def up_to_8_assays_across(this_round_plates):
             phage_dilutions = phage_dilutions1 + phage_dilutions2
             plate_wells = plate_wells1 + plate_wells2
             culture_wells = culture_wells1() + culture_wells2()
-            return phage_dilutions, plate_wells, culture_wells
+            return phage_dilutions, culture_wells, plate_wells
     else:
         for phage_dilutions, plate_wells, culture_wells in this_round_batches:
-            return phage_dilutions, plate_wells, culture_wells()
+            return phage_dilutions, culture_wells(), plate_wells
 
 def main():
-    for assay_plates in get_up_to_2_plates():
-        phage_dilutions, plate_wells, culture_wells = up_to_8_assays_across(assay_plates)
-        prepare_plaque_assays(phage_dilutions, plate_wells, culture_wells)
+    for assay_plates in get_2_plates():
+        reagents, bacteria, destination_wells = get_8_wells(assay_plates)
+        prepare_plaque_assays(reagents, bacteria, destination_wells)
 
 class Nothing:
     def __init__(self):
