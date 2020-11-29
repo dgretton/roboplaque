@@ -4,37 +4,18 @@ import sys, os, time, logging, importlib
 from threading import Thread
 
 this_file_dir = os.path.dirname(__file__)
-methods_dir = os.path.abspath(os.path.join(this_file_dir, '..', '..', '..'))
+methods_dir = os.path.abspath(this_file_dir)
 dropbox_dir = os.path.dirname(methods_dir)
 user_dir = os.path.dirname(dropbox_dir)
 global_log_dir = os.path.join(dropbox_dir, 'Monitoring', 'log')
 
-pyham_pkg_path = os.path.join(methods_dir, 'perma_oem', 'pyhamilton')
-reader_mod_path = os.path.join(methods_dir, 'perma_plate_reader', 'platereader')
-pump_pkg_path = os.path.join(methods_dir, 'perma_pump', 'auxpump')
-shaker_pkg_path = os.path.join(methods_dir, 'perma_shaker', 'auxshaker')
-
 LAYFILE = os.path.join(this_file_dir, 'assets', 'deck.lay')
-
-for imp_path in (pyham_pkg_path, reader_mod_path, pump_pkg_path, shaker_pkg_path):
-    pkgname = os.path.basename(imp_path)
-    try:
-        imported_mod = importlib.import_module(pkgname)
-    except ModuleNotFoundError:
-        if imp_path not in sys.path:
-            sys.path.append(imp_path)
-            imported_mod = importlib.import_module(pkgname)
-    print('USING ' + ('SITE-PACKAGES ' if 'site-packages' in os.path.abspath(imported_mod.__file__) else 'LOCAL ') + pkgname)
 
 import pyhamilton
 from pyhamilton import (HamiltonInterface, LayoutManager, ResourceType, Plate24, Plate96, Tip96,
     INITIALIZE, PICKUP, EJECT, ASPIRATE, DISPENSE, ISWAP_GET, ISWAP_PLACE, HEPA,
     WASH96_EMPTY, PICKUP96, EJECT96, ASPIRATE96, DISPENSE96,
     oemerr, PositionError)
-from platereader.clariostar import ClarioStar, PlateData
-from auxpump.pace import OffDeckCulturePumps, LBPumps
-from auxshaker.bigbear import Shaker
-import send_email
 
 def resource_list_with_prefix(layout_manager, prefix, res_class, num_ress, order_key=None, reverse=False):
     def name_from_line(line):

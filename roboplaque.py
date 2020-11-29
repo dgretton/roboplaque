@@ -23,8 +23,6 @@ if not os.path.exists(local_log_dir):
     os.mkdir(local_log_dir)
 main_logfile = os.path.join(local_log_dir, 'main.log')
 logging.basicConfig(filename=main_logfile, level=logging.DEBUG, format='[%(asctime)s] %(name)s %(levelname)s %(message)s')
-add_robot_level_log()
-add_stderr_logging()
 for banner_line in log_banner('Begin execution of ' + __file__):
     logging.info(banner_line)
 
@@ -41,19 +39,16 @@ soft_agar_vol = 200 # uL
 culture_stock_vol = 300 # uL
 dipenses_per_prep_tip = 3 #int(1000/1.1)//int(hard_agar_vol)
 culture_asps_per_stock = int(culture_stock_vol)//int(culture_vol*1.25) # room for over-aspiration error
-#print('dipenses_per_prep_tip', dipenses_per_prep_tip)
-#print('culture_asps_per_stock', culture_asps_per_stock)
 #print('Number of filled', culture_stock_vol, 'uL tubes of bacterial culture needed for this run:', int(ceil(num_plates*24/culture_asps_per_stock)))
 
 lmgr = LayoutManager(LAYFILE)
 
-dilution_array = lmgr.assign_unused_resource(ResourceType(Plate96, 'phage_dilutions'))
+dilution_array = lmgr.assign_unused_resource(ResourceType(Plate96, 'dilutions'))
 agar_sites = resource_list_with_prefix(lmgr, 'agar_', Plate96, 4)
 culture_site = lmgr.assign_unused_resource(ResourceType(Plate96, 'culture'))
 plates = resource_list_with_prefix(lmgr, 'assay_plate_', Plate24, num_plates)
 agar_tips = resource_list_with_prefix(lmgr, 'disposable_tips_', Tip96, 1)
 culture_tips = resource_list_with_prefix(lmgr, 'standard_tips_', Tip96, 1)
-#eject_site = None if '--test' in sys.argv else lmgr.assign_unused_resource(ResourceType(Tip96, 'test_eject_site'))
 
 all_agar_positions = [(agar_site, n) for agar_site in agar_sites for n in (0, 1)]
 sys_state = lambda:None # simple namespace
@@ -98,11 +93,10 @@ def replace_agar_tips():
         n += 1
 replace_agar_tips = replace_agar_tips()
 
-def system_initialize(ham_int, reader_int):
+def system_initialize():
     ham_int, *_ = sys_state.instruments
     ham_int.set_log_dir(os.path.join(local_log_dir, 'hamilton.log'))
     initialize(ham_int)
-    hepa_on(ham_int, 30, simulate=int(simulation_on))
 
 def prepare_assays(phage_dilutions, culture_wells, plate_wells): # deal with up to 8 at the same time
     ham_int, *_ = sys_state.instruments
@@ -180,7 +174,8 @@ def get_8_wells(this_round_plates):
 def main():
     for assay_plates in get_2_plates():
         reagents, bacteria, destination_wells = get_8_wells(assay_plates)
-        prepare_plaque_assays(reagents, bacteria, destination_wells)
+        prepare_assays(reagents, bacteria, \
+                destination_wells)
 
 class Nothing:
     def __init__(self):
