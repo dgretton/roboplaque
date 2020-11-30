@@ -2,3 +2,6 @@
 *.lay binary
 *.mdb binary
 *.rck binary
+*.ctr binary
+*.lid binary
+*.png binary
