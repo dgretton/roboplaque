@@ -98,31 +98,32 @@ def system_initialize():
     ham_int.set_log_dir(os.path.join(local_log_dir, 'hamilton.log'))
     initialize(ham_int)
 
-def prepare_assays(phage_dilutions, culture_wells, plate_wells): # deal with up to 8 at the same time
-    ham_int, *_ = sys_state.instruments
-    num_phage_dilutions = len(phage_dilutions)
-    agar_positions = all_agar_positions[:num_phage_dilutions]
-    if prep_hard_agar:
-        logging.info('\n##### Filling assay plates with hard agar.')
-        if next(replace_agar_tips):
-            tip_eject(ham_int)
-            new_tips(num_phage_dilutions)
-            aspirate(ham_int, agar_positions, [hard_agar_vol*dipenses_per_prep_tip*1.3]*num_phage_dilutions, liquidClass=agar_class) # Aspirate 10% more to avoid bubbles
-        dispense(ham_int, plate_wells, [hard_agar_vol]*num_phage_dilutions, liquidHeight=6, liquidClass=agar_class)
-        return
-    logging.info('\n##### Moving culture into dilution wells.')
-    new_tips(num_phage_dilutions, 'culture')
-    aspirate(ham_int, culture_wells, [culture_vol]*num_phage_dilutions, liquidClass=std_class)
-    dispense(ham_int, phage_dilutions, [culture_vol]*num_phage_dilutions, liquidClass=std_class)
-    tip_eject(ham_int)
-    logging.info('\n##### Moving agar into dilution tubes.')
-    new_tips(num_phage_dilutions)
-    aspirate(ham_int, agar_positions, [soft_agar_vol + 50]*num_phage_dilutions, liquidClass=agar_class)
-    dispense(ham_int, phage_dilutions, [soft_agar_vol + 50]*num_phage_dilutions, liquidHeight=6, liquidClass=agar_class)
-    logging.info('\n##### Moving finished phage_dilutions into plate wells.')
-    aspirate(ham_int, phage_dilutions, [soft_agar_vol]*num_phage_dilutions, liquidClass=agar_class)
-    dispense(ham_int, plate_wells, [soft_agar_vol]*num_phage_dilutions, liquidHeight=6, liquidClass=agar_class)
-    tip_eject(ham_int)
+def prepare_assays(all_phage_dilutions, all_culture_wells, all_plate_wells): # deal with up to 8 at the same time
+    for phage_dilutions, culture_wells, plate_wells in zip(all_phage_dilutions, all_culture_wells, all_plate_wells):
+        ham_int, *_ = sys_state.instruments
+        num_phage_dilutions = len(phage_dilutions)
+        agar_positions = all_agar_positions[:num_phage_dilutions]
+        if prep_hard_agar:
+            logging.info('\n##### Filling assay plates with hard agar.')
+            if next(replace_agar_tips):
+                tip_eject(ham_int)
+                new_tips(num_phage_dilutions)
+                aspirate(ham_int, agar_positions, [hard_agar_vol*dipenses_per_prep_tip*1.3]*num_phage_dilutions, liquidClass=agar_class) # Aspirate 30% more to avoid bubbles
+            dispense(ham_int, plate_wells, [hard_agar_vol]*num_phage_dilutions, liquidHeight=6, liquidClass=agar_class)
+            return
+        logging.info('\n##### Moving culture into dilution wells.')
+        new_tips(num_phage_dilutions, 'culture')
+        aspirate(ham_int, culture_wells, [culture_vol]*num_phage_dilutions, liquidClass=std_class)
+        dispense(ham_int, phage_dilutions, [culture_vol]*num_phage_dilutions, liquidClass=std_class)
+        tip_eject(ham_int)
+        logging.info('\n##### Moving agar into dilution tubes.')
+        new_tips(num_phage_dilutions)
+        aspirate(ham_int, agar_positions, [soft_agar_vol + 50]*num_phage_dilutions, liquidClass=agar_class)
+        dispense(ham_int, phage_dilutions, [soft_agar_vol + 50]*num_phage_dilutions, liquidHeight=6, liquidClass=agar_class)
+        logging.info('\n##### Moving finished phage_dilutions into plate wells.')
+        aspirate(ham_int, phage_dilutions, [soft_agar_vol]*num_phage_dilutions, liquidClass=agar_class)
+        dispense(ham_int, plate_wells, [soft_agar_vol]*num_phage_dilutions, liquidHeight=6, liquidClass=agar_class)
+        tip_eject(ham_int)
 
 def new_tips(num=num_phage_dilutions, ttype='agar'):
     ham_int, *_ = sys_state.instruments
@@ -153,6 +154,7 @@ def get_2_plates():
         yield this_round_plates
 
 def get_8_wells(this_round_plates):
+    result_triples = []
     this_round_batches = []
     for pos_batch in pos_batches:
         _, ((extract_plate, _), *_), _ = pos_batch
@@ -166,16 +168,17 @@ def get_8_wells(this_round_plates):
             phage_dilutions = phage_dilutions1 + phage_dilutions2
             plate_wells = plate_wells1 + plate_wells2
             culture_wells = culture_wells1() + culture_wells2()
-            return phage_dilutions, culture_wells, plate_wells
+            result_triples.append((phage_dilutions, culture_wells, plate_wells))
     else:
         for phage_dilutions, plate_wells, culture_wells in this_round_batches:
-            return phage_dilutions, culture_wells(), plate_wells
+            result_triples.append((phage_dilutions, culture_wells(), plate_wells))
+    all_phage_dilutions, all_culture_wells, all_plate_wells = zip(*result_triples)
+    return all_phage_dilutions, all_culture_wells, all_plate_wells
 
 def main():
     for assay_plates in get_2_plates():
         reagents, bacteria, destination_wells = get_8_wells(assay_plates)
-        prepare_assays(reagents, bacteria, \
-                destination_wells)
+        prepare_assays(reagents, bacteria, destination_wells)
 
 class Nothing:
     def __init__(self):
@@ -184,6 +187,14 @@ class Nothing:
         return self
     def __exit__(self, *args):
         pass
+
+# pass key keyword argument 'simulate' to Hamilton interface to enable the
+# simulator. that is, use:
+# ```
+#     with HamiltonInterface(simulate=True) as ham_int, \
+#        ...
+# ```
+# below.
 
 if __name__ == '__main__':
     with HamiltonInterface() as ham_int, \
