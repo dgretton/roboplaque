@@ -1,7 +1,9 @@
 # roboplaque
 Automatically prepare and run phage titer plaque assays using [pyhamilton](https://github.com/dgretton/pyhamilton), Python for Hamilton liquid handling robots.
 
-Before running, please import all liquid classes in `assets/agar.mdb` using the HAMILTON CO-RE Liquid Editor.
+Before running, please:
+- Import all liquid classes in `assets/agar.mdb` using the HAMILTON CO-RE Liquid Editor.
+- Copy the definition for the 24-well plates from `assets\Cos_HtsTranswell24.rck` to `C:\Program Files (x86)\HAMILTON\LabWare\`, if you do not already have it installed.
 
 Referenced in:
 
